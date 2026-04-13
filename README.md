@@ -16,7 +16,7 @@ nvm install --lts
 ```
 ### Repository
 ```bash
-git clone https://github.com/soyuo/server-manager`
+git clone https://github.com/soyuo/server-manager
 cd server-manager
 npm install
 npm run build
