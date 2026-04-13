@@ -12,8 +12,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
-const app = express();
-const wsInstance = expressWs(app);
+const wsInstance = expressWs(express());
+const app = wsInstance.app;
 const wss = wsInstance.getWss();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'server-secret-key-2026';
