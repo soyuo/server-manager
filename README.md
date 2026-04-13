@@ -5,6 +5,7 @@
 ## Features
 - Process add/delete/restart with pm2
 - File read/write/explore
+- ubuntu terminal
 
 ## Install
 
