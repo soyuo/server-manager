@@ -24,6 +24,7 @@ npm run build
 - (please ignore expressWs type warning..)
 ### pm2 Setup
 ```bash
+npm i -g pm2
 pm2 start 'node server.js' --name server
 pm2 save
 pm2 startup
