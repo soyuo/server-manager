@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
@@ -21,6 +22,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
 <style>
   :root {
     --bg0: #0a0a0f;
@@ -249,6 +252,7 @@
   .tab-content { display: none; width: 100%; }
   .tab-content.active { display: flex; }
 
+  /* ── File Tab ─────────────────────────────── */
   #tab-files {
     flex-direction: column;
     height: 100%;
@@ -332,12 +336,7 @@
   .file-dir .file-name { color: var(--info); }
   .file-meta { color: var(--text3); font-size: 10px; flex-shrink: 0; }
 
-  .file-item-actions {
-    display: none;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-
+  .file-item-actions { display: none; gap: 4px; flex-shrink: 0; }
   .file-item:hover .file-item-actions { display: flex; }
 
   .act-btn {
@@ -407,7 +406,6 @@
   .CodeMirror-selected { background: rgba(0,229,160,0.12) !important; }
   .CodeMirror-focused .CodeMirror-selected { background: rgba(0,229,160,0.15) !important; }
   .CodeMirror-activeline-background { background: rgba(255,255,255,0.03) !important; }
-
   .CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
 
   .CodeMirror-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -431,8 +429,6 @@
   .cm-meta      { color: #d2a8ff !important; }
   .cm-type      { color: #ffa657 !important; }
   .cm-qualifier { color: #7ee787 !important; }
-  .cm-matchhighlight { background: rgba(0,229,160,0.15) !important; outline: 1px solid rgba(0,229,160,0.3); }
-
   .CodeMirror-matchingbracket {
     color: var(--accent) !important;
     font-weight: bold;
@@ -453,6 +449,7 @@
   .editor-placeholder .big-icon { font-size: 48px; opacity: 0.4; }
   .editor-placeholder p { font-size: 12px; }
 
+  /* ── PM2 Tab ─────────────────────────────── */
   #tab-pm2 {
     flex-direction: column;
     height: 100%;
@@ -502,41 +499,24 @@
   .process-card:hover { border-color: var(--border2); }
   .process-card.selected { border-color: rgba(0,229,160,0.4); background: rgba(0,229,160,0.04); }
 
-  .process-status {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .status-online { background: var(--accent); box-shadow: 0 0 8px rgba(0,229,160,0.5); }
+  .process-status { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .status-online  { background: var(--accent); box-shadow: 0 0 8px rgba(0,229,160,0.5); }
   .status-stopped { background: var(--text3); }
   .status-errored { background: var(--danger); box-shadow: 0 0 8px rgba(255,71,87,0.5); }
-  .status-stopping { background: var(--warn); }
+  .status-stopping{ background: var(--warn); }
 
   .process-info { flex: 1; min-width: 0; }
   .process-name { color: var(--text); font-weight: 600; font-size: 13px; font-family: var(--sans); margin-bottom: 4px; }
   .process-details { color: var(--text3); font-size: 11px; display: flex; gap: 16px; flex-wrap: wrap; }
   .process-detail { display: flex; align-items: center; gap: 4px; }
 
-  .process-metrics {
-    display: flex;
-    gap: 16px;
-    flex-shrink: 0;
-  }
+  .process-metrics { display: flex; gap: 16px; flex-shrink: 0; }
 
-  .metric {
-    text-align: right;
-  }
-
-  .metric-val { color: var(--text); font-size: 14px; font-weight: 600; }
+  .metric { text-align: right; }
+  .metric-val   { color: var(--text); font-size: 14px; font-weight: 600; }
   .metric-label { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  .process-actions {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-  }
+  .process-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
   .proc-btn {
     background: var(--bg3);
@@ -553,9 +533,9 @@
 
   .proc-btn:hover { background: var(--bg4); color: var(--text); }
   .proc-btn.restart:hover { color: var(--accent); border-color: rgba(0,229,160,0.4); }
-  .proc-btn.stop:hover { color: var(--warn); border-color: rgba(255,179,64,0.4); }
-  .proc-btn.del:hover { color: var(--danger); border-color: rgba(255,71,87,0.4); }
-  .proc-btn.log:hover { color: var(--info); border-color: rgba(79,195,247,0.4); }
+  .proc-btn.stop:hover    { color: var(--warn);   border-color: rgba(255,179,64,0.4); }
+  .proc-btn.del:hover     { color: var(--danger);  border-color: rgba(255,71,87,0.4); }
+  .proc-btn.log:hover     { color: var(--info);    border-color: rgba(79,195,247,0.4); }
 
   .pm2-log-panel {
     width: 380px;
@@ -591,6 +571,64 @@
   .log-content::-webkit-scrollbar { width: 4px; }
   .log-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
+  /* ── Terminal Tab ─────────────────────────── */
+  #tab-terminal {
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg0);
+  }
+
+  .terminal-toolbar {
+    background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .terminal-title {
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .terminal-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    flex-shrink: 0;
+  }
+
+  .terminal-status-dot.disconnected {
+    background: var(--text3);
+    box-shadow: none;
+  }
+
+  #terminal-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px 12px;
+    background: #0d0d14;
+  }
+
+  #terminal-wrapper .xterm {
+    height: 100%;
+  }
+
+  #terminal-wrapper .xterm-viewport::-webkit-scrollbar { width: 5px; }
+  #terminal-wrapper .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
+  #terminal-wrapper .xterm-viewport::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* ── Modals ───────────────────────────────── */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -645,6 +683,7 @@
   }
   .btn-cancel:hover { color: var(--text); border-color: var(--border2); }
 
+  /* ── Toasts ───────────────────────────────── */
   #toast-container {
     position: fixed;
     bottom: 24px;
@@ -670,12 +709,12 @@
   }
 
   .toast.success { border-left: 3px solid var(--accent); }
-  .toast.error { border-left: 3px solid var(--danger); }
-  .toast.info { border-left: 3px solid var(--info); }
+  .toast.error   { border-left: 3px solid var(--danger); }
+  .toast.info    { border-left: 3px solid var(--info);   }
 
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
+    to   { opacity: 1; transform: translateX(0); }
   }
 
   .badge {
@@ -700,9 +739,6 @@
   .empty-state .icon { font-size: 36px; opacity: 0.5; }
 
   .loading { color: var(--text3); font-size: 12px; padding: 20px; text-align: center; }
-
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
   .sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 </style>
@@ -729,6 +765,9 @@
       <div class="tab active" data-tab="files">
         <span class="tab-icon">📁</span> 파일
       </div>
+      <div class="tab" data-tab="terminal">
+        <span class="tab-icon">⌨️</span> 터미널
+      </div>
       <div class="tab" data-tab="pm2">
         <span class="tab-icon">📄</span> 프로세스
       </div>
@@ -743,6 +782,7 @@
 
   <div class="main">
 
+    <!-- ── 파일 탭 ── -->
     <div class="tab-content active" id="tab-files">
       <div class="file-toolbar">
         <button class="btn-icon" id="btn-back" title="뒤로">←</button>
@@ -776,6 +816,20 @@
       </div>
     </div>
 
+    <!-- ── 터미널 탭 ── -->
+    <div class="tab-content" id="tab-terminal">
+      <div class="terminal-toolbar">
+        <div class="terminal-title">
+          <div class="terminal-status-dot disconnected" id="term-status-dot"></div>
+          <span id="term-status-text">터미널 연결 대기 중...</span>
+        </div>
+        <button class="btn-icon" id="btn-term-clear" title="화면 지우기">🗑 Clear</button>
+        <button class="btn-icon" id="btn-term-reconnect" title="재연결">↻ 재연결</button>
+      </div>
+      <div id="terminal-wrapper"></div>
+    </div>
+
+    <!-- ── 프로세스 탭 ── -->
     <div class="tab-content" id="tab-pm2">
       <div class="pm2-toolbar">
         <button class="btn-icon green" id="btn-register-proc">＋ 프로세스 등록</button>
@@ -803,6 +857,7 @@
   </div>
 </div>
 
+<!-- ── 모달: 프로세스 등록 ── -->
 <div class="modal-overlay" id="modal-register" style="display:none;">
   <div class="modal">
     <h3>⚡ 프로세스 등록</h3>
@@ -833,6 +888,7 @@
   </div>
 </div>
 
+<!-- ── 모달: 새 파일/폴더 ── -->
 <div class="modal-overlay" id="modal-new-file" style="display:none;">
   <div class="modal">
     <h3 id="new-file-title">＋ 새 파일 생성</h3>
@@ -860,6 +916,13 @@ let newFileType = 'file';
 let selectedProcess = null;
 let logProcessId = null;
 let cmEditor = null;
+
+let ws = null;
+
+let term = null;
+let fitAddon = null;
+let termInitialized = false;
+let termConnected = false;
 
 function toast(msg, type = 'info') {
   const c = document.getElementById('toast-container');
@@ -939,17 +1002,154 @@ function showApp() {
   app.classList.add('visible');
   loadFiles('/');
   loadPM2();
-  const ws = new WebSocket(
-    `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
-  );
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
+  connectWS();
+}
 
-    if (msg.type === 'pm2') {
-      updatePM2Metrics(msg.data);
+function connectWS() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+  ws = new WebSocket(
+    `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?token=${encodeURIComponent(token)}`
+  );
+
+  ws.onopen = () => {
+    console.log('WS connected');
+    if (document.getElementById('tab-terminal').classList.contains('active')) {
+      initTerminal();
     }
   };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'pm2') {
+      updatePM2Metrics(msg.data);
+    } else if (msg.type === 'terminal_output') {
+      if (term) term.write(msg.data);
+    } else if (msg.type === 'terminal_ready') {
+      setTermStatus(true);
+    } else if (msg.type === 'terminal_exit') {
+      setTermStatus(false);
+      if (term) term.write('\r\n\x1b[33m[프로세스 종료됨. ↻ 재연결 버튼으로 새 세션을 시작하세요.]\x1b[0m\r\n');
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('WS disconnected');
+    setTermStatus(false);
+    setTimeout(() => connectWS(), 3000);
+  };
+
+  ws.onerror = () => {
+    ws.close();
+  };
 }
+
+function setTermStatus(connected) {
+  termConnected = connected;
+  const dot  = document.getElementById('term-status-dot');
+  const text = document.getElementById('term-status-text');
+  if (!dot || !text) return;
+  if (connected) {
+    dot.classList.remove('disconnected');
+    text.textContent = 'bash  —  연결됨';
+  } else {
+    dot.classList.add('disconnected');
+    text.textContent = '터미널 연결 끊김';
+  }
+}
+
+function initTerminal() {
+  if (!termInitialized) {
+    term = new Terminal({
+      cursorBlink: true,
+      cursorStyle: 'bar',
+      fontSize: 14,
+      fontFamily: "'JetBrains Mono', 'Ubuntu Mono', 'Courier New', monospace",
+      lineHeight: 1.4,
+      letterSpacing: 0,
+      scrollback: 5000,
+      theme: {
+        background:      '#0d0d14',
+        foreground:      '#dcdfe4',
+        cursor:          '#00e5a0',
+        cursorAccent:    '#000000',
+        selectionBackground: 'rgba(0,229,160,0.25)',
+        black:           '#2e3436',
+        red:             '#cc0000',
+        green:           '#4e9a06',
+        yellow:          '#c4a000',
+        blue:            '#3465a4',
+        magenta:         '#75507b',
+        cyan:            '#06989a',
+        white:           '#d3d7cf',
+        brightBlack:     '#555753',
+        brightRed:       '#ef2929',
+        brightGreen:     '#8ae234',
+        brightYellow:    '#fce94f',
+        brightBlue:      '#729fcf',
+        brightMagenta:   '#ad7fa8',
+        brightCyan:      '#34e2e2',
+        brightWhite:     '#eeeeec',
+      }
+    });
+
+    fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(document.getElementById('terminal-wrapper'));
+    fitAddon.fit();
+
+    term.onData(data => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'terminal_input', data }));
+      }
+    });
+
+    term.onResize(({ cols, rows }) => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'terminal_resize', cols, rows }));
+      }
+    });
+
+    termInitialized = true;
+  }
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'terminal_init',
+      cols: term.cols,
+      rows: term.rows
+    }));
+  }
+
+  const ro = new ResizeObserver(() => {
+    if (fitAddon) fitAddon.fit();
+  });
+  ro.observe(document.getElementById('terminal-wrapper'));
+
+  setTimeout(() => {
+    if (fitAddon) fitAddon.fit();
+    term.focus();
+  }, 50);
+}
+
+document.getElementById('btn-term-clear').addEventListener('click', () => {
+  if (term) term.clear();
+});
+
+document.getElementById('btn-term-reconnect').addEventListener('click', () => {
+  if (termInitialized && ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'terminal_init',
+      cols: term.cols,
+      rows: term.rows
+    }));
+    term.clear();
+    toast('터미널 재연결 중...', 'info');
+  } else {
+    connectWS();
+    toast('WebSocket 재연결 중...', 'info');
+  }
+});
 
 document.getElementById('auth-btn').addEventListener('click', doLogin);
 document.getElementById('auth-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -965,6 +1165,26 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+
+    if (tab.dataset.tab === 'terminal') {
+      setTimeout(() => {
+        if (!termInitialized) {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            initTerminal();
+          } else {
+            const waitWS = setInterval(() => {
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                clearInterval(waitWS);
+                initTerminal();
+              }
+            }, 200);
+          }
+        } else {
+          if (fitAddon) fitAddon.fit();
+          term.focus();
+        }
+      }, 30);
+    }
   });
 });
 
@@ -1087,11 +1307,8 @@ function initCodeMirror() {
       'Cmd-S':  () => document.getElementById('btn-save-file').click(),
       'Ctrl-/': 'toggleComment',
       'Tab': (cm) => {
-        if (cm.somethingSelected()) {
-          cm.indentSelection('add');
-        } else {
-          cm.replaceSelection('  ', 'end');
-        }
+        if (cm.somethingSelected()) cm.indentSelection('add');
+        else cm.replaceSelection('  ', 'end');
       },
       'Shift-Tab': (cm) => cm.indentSelection('subtract'),
     }
@@ -1101,11 +1318,11 @@ function initCodeMirror() {
 async function openEditor(filePath) {
   editingFile = filePath;
   const placeholder = document.getElementById('editor-placeholder');
-  const editorView = document.getElementById('editor-view');
+  const editorView  = document.getElementById('editor-view');
   try {
     const data = await api('GET', `/api/files/read?path=${encodeURIComponent(filePath)}`);
     placeholder.style.display = 'none';
-    editorView.style.display = 'flex';
+    editorView.style.display  = 'flex';
     document.getElementById('editor-path-label').textContent = filePath;
     document.getElementById('editor-lang-badge').textContent = getLangLabel(filePath);
 
@@ -1156,27 +1373,15 @@ async function deleteFileConfirm(filePath, name) {
 }
 
 document.getElementById('btn-back').addEventListener('click', () => {
-  if (pathHistory.length > 0) {
-    const prev = pathHistory.pop();
-    loadFiles(prev);
-  }
+  if (pathHistory.length > 0) loadFiles(pathHistory.pop());
 });
-
-document.getElementById('btn-home').addEventListener('click', () => {
-  pathHistory = [];
-  loadFiles('/');
-});
-
+document.getElementById('btn-home').addEventListener('click', () => { pathHistory = []; loadFiles('/'); });
 document.getElementById('btn-go').addEventListener('click', () => {
   const p = document.getElementById('path-bar').value;
   pathHistory.push(currentPath);
   loadFiles(p);
 });
-
-document.getElementById('path-bar').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('btn-go').click();
-});
-
+document.getElementById('path-bar').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btn-go').click(); });
 document.getElementById('btn-refresh-files').addEventListener('click', () => loadFiles(currentPath));
 
 document.getElementById('btn-new-file').addEventListener('click', () => {
@@ -1328,21 +1533,17 @@ function updatePM2Metrics(processes) {
   processes.forEach(proc => {
     const el = document.querySelector(`[data-id="${proc.pm_id}"]`);
     if (!el) return;
-
     const mem = proc.monit?.memory || 0;
     const cpu = proc.monit?.cpu || 0;
-
     const cpuEl = el.querySelector('.metric-val');
     const memEl = el.querySelectorAll('.metric-val')[1];
-
     if (cpuEl) cpuEl.textContent = cpu + '%';
     if (memEl) memEl.textContent = formatBytes(mem);
   });
 }
 
 function clearLogPanel(msg = '') {
-  const logEl = document.getElementById('log-content');
-  logEl.textContent = msg;
+  document.getElementById('log-content').textContent = msg;
 }
 
 async function fetchLogs(id, name) {
@@ -1391,11 +1592,11 @@ document.getElementById('modal-register-cancel').addEventListener('click', () =>
 });
 
 document.getElementById('modal-register-confirm').addEventListener('click', async () => {
-  const name = document.getElementById('reg-name').value.trim();
-  const script = document.getElementById('reg-script').value.trim();
-  const cwd = document.getElementById('reg-cwd').value.trim();
+  const name        = document.getElementById('reg-name').value.trim();
+  const script      = document.getElementById('reg-script').value.trim();
+  const cwd         = document.getElementById('reg-cwd').value.trim();
   const interpreter = document.getElementById('reg-interpreter').value.trim();
-  const args = document.getElementById('reg-args').value.trim();
+  const args        = document.getElementById('reg-args').value.trim();
   if (!name || !script) { toast('이름과 스크립트 경로는 필수입니다.', 'error'); return; }
   try {
     await api('POST', '/api/pm2/register', { name, script, cwd, interpreter, args });
@@ -1423,12 +1624,8 @@ document.addEventListener('keydown', e => {
 (async () => {
   if (token) {
     const valid = await checkAuth();
-    if (valid) {
-      showApp();
-    } else {
-      localStorage.removeItem('sm_token');
-      token = '';
-    }
+    if (valid) showApp();
+    else { localStorage.removeItem('sm_token'); token = ''; }
   }
 })();
 </script>

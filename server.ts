@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import * as pty from 'node-pty';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -42,31 +43,106 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): vo
   }
 }
 
+function verifyToken(token: string): boolean {
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function broadcastPM2() {
   try {
     const { stdout } = await pm2Command('jlist');
     const processes = JSON.parse(stdout);
-
-    const payload = JSON.stringify({
-      type: 'pm2',
-      data: processes
-    });
-
+    const payload = JSON.stringify({ type: 'pm2', data: processes });
     wss.clients.forEach((client: any) => {
-      if (client.readyState === 1) {
-        client.send(payload);
-      }
+      if (client.readyState === 1) client.send(payload);
     });
   } catch (e) {
     console.error(e);
   }
 }
 
-app.ws('/ws', (ws: any, _req: Request) => {
+app.ws('/ws', (ws: any, req: Request) => {
+  const token = req.query.token as string;
+  if (!token || !verifyToken(token)) {
+    ws.close(4001, 'Unauthorized');
+    return;
+  }
+
   console.log('WS connected');
+
+  let ptyProcess: pty.IPty | null = null;
+
+  function spawnPty(cols: number, rows: number) {
+    if (ptyProcess) {
+      try { ptyProcess.kill(); } catch {}
+      ptyProcess = null;
+    }
+
+    const shell = process.env.SHELL || '/bin/bash';
+
+    ptyProcess = pty.spawn(shell, [], {
+      name: 'xterm-256color',
+      cols: cols || 80,
+      rows: rows || 24,
+      cwd: process.env.HOME || '/',
+      env: process.env as { [key: string]: string },
+    });
+
+    ptyProcess.onData((data: string) => {
+      try {
+        ws.send(JSON.stringify({ type: 'terminal_output', data }));
+      } catch {}
+    });
+
+    ptyProcess.onExit(() => {
+      try {
+        ws.send(JSON.stringify({ type: 'terminal_exit' }));
+      } catch {}
+      ptyProcess = null;
+    });
+
+    ws.send(JSON.stringify({ type: 'terminal_ready' }));
+  }
+
+  ws.on('message', (raw: string) => {
+    try {
+      const msg = JSON.parse(raw);
+
+      switch (msg.type) {
+        case 'terminal_init':
+          spawnPty(msg.cols || 80, msg.rows || 24);
+          break;
+
+        case 'terminal_input':
+          if (ptyProcess) ptyProcess.write(msg.data);
+          break;
+
+        case 'terminal_resize':
+          if (ptyProcess) {
+            try {
+              ptyProcess.resize(
+                Math.max(1, msg.cols || 80),
+                Math.max(1, msg.rows || 24)
+              );
+            } catch {}
+          }
+          break;
+      }
+    } catch (e) {
+      console.error('WS message error:', e);
+    }
+  });
 
   ws.on('close', () => {
     console.log('WS disconnected');
+    if (ptyProcess) {
+      try { ptyProcess.kill(); } catch {}
+      ptyProcess = null;
+    }
   });
 });
 
@@ -85,8 +161,7 @@ app.get('/api/auth/verify', authMiddleware, (_req: Request, res: Response): void
 });
 
 function safePath(inputPath: string): string {
-  const resolved = path.resolve(inputPath || '/');
-  return resolved;
+  return path.resolve(inputPath || '/');
 }
 
 app.get('/api/files/list', authMiddleware, async (req: Request, res: Response): Promise<void> => {
@@ -102,9 +177,7 @@ app.get('/api/files/list', authMiddleware, async (req: Request, res: Response): 
           const stat = await fs.promises.stat(fullPath);
           size = stat.size;
           modifiedAt = stat.mtime.toISOString();
-        } catch {
-          // ignore
-        }
+        } catch {}
         return {
           name: entry.name,
           path: fullPath,
@@ -115,7 +188,6 @@ app.get('/api/files/list', authMiddleware, async (req: Request, res: Response): 
         };
       })
     );
-    // Sort: directories first, then files
     items.sort((a, b) => {
       if (a.isDirectory && !b.isDirectory) return -1;
       if (!a.isDirectory && b.isDirectory) return 1;
@@ -123,8 +195,7 @@ app.get('/api/files/list', authMiddleware, async (req: Request, res: Response): 
     });
     res.json({ path: dirPath, items });
   } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: (err as NodeJS.ErrnoException).message });
   }
 });
 
@@ -139,8 +210,7 @@ app.get('/api/files/read', authMiddleware, async (req: Request, res: Response): 
     const content = await fs.promises.readFile(filePath, 'utf-8');
     res.json({ path: filePath, content });
   } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: (err as NodeJS.ErrnoException).message });
   }
 });
 
@@ -150,8 +220,7 @@ app.post('/api/files/write', authMiddleware, async (req: Request, res: Response)
     await fs.promises.writeFile(safePath(filePath), content, 'utf-8');
     res.json({ message: '저장 완료', path: filePath });
   } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: (err as NodeJS.ErrnoException).message });
   }
 });
 
@@ -170,8 +239,7 @@ app.post('/api/files/create', authMiddleware, async (req: Request, res: Response
     }
     res.json({ message: '생성 완료', path: safe });
   } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: (err as NodeJS.ErrnoException).message });
   }
 });
 
@@ -181,8 +249,7 @@ app.delete('/api/files/delete', authMiddleware, async (req: Request, res: Respon
     await fs.promises.rm(filePath, { recursive: true, force: true });
     res.json({ message: '삭제 완료', path: filePath });
   } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: (err as NodeJS.ErrnoException).message });
   }
 });
 
@@ -192,8 +259,7 @@ app.post('/api/files/rename', authMiddleware, async (req: Request, res: Response
     await fs.promises.rename(safePath(oldPath), safePath(newPath));
     res.json({ message: '이름 변경 완료' });
   } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: (err as NodeJS.ErrnoException).message });
   }
 });
 
@@ -204,29 +270,10 @@ async function pm2Command(cmd: string): Promise<{ stdout: string; stderr: string
 app.get('/api/pm2/list', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
   try {
     const { stdout } = await pm2Command('jlist');
-    const processes = JSON.parse(stdout) as Array<{
-      pid: number;
-      name: string;
-      pm_id: number;
-      pm2_env: {
-        status: string;
-        restart_time: number;
-        created_at: number;
-        pm_uptime: number;
-        exec_interpreter: string;
-        pm_exec_path: string;
-        cwd: string;
-        args: string[];
-      };
-      monit: {
-        memory: number;
-        cpu: number;
-      };
-    }>;
+    const processes = JSON.parse(stdout);
     res.json({ processes });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message, processes: [] });
+    res.status(500).json({ error: (err as Error).message, processes: [] });
   }
 });
 
@@ -237,8 +284,7 @@ app.post('/api/pm2/restart/:id', authMiddleware, async (req: Request, res: Respo
     await pm2Command(`restart ${req.params.id}`);
     res.json({ message: `프로세스 ${req.params.id} 재시작 완료` });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -247,8 +293,7 @@ app.post('/api/pm2/flush/:id', authMiddleware, async (req: Request, res: Respons
     await pm2Command(`flush ${req.params.id}`);
     res.json({ message: `프로세스 ${req.params.id} 로그 초기화 완료` });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -257,8 +302,7 @@ app.post('/api/pm2/stop/:id', authMiddleware, async (req: Request, res: Response
     await pm2Command(`stop ${req.params.id}`);
     res.json({ message: `프로세스 ${req.params.id} 중지 완료` });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -267,8 +311,7 @@ app.post('/api/pm2/start/:id', authMiddleware, async (req: Request, res: Respons
     await pm2Command(`start ${req.params.id}`);
     res.json({ message: `프로세스 ${req.params.id} 시작 완료` });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -277,8 +320,7 @@ app.delete('/api/pm2/delete/:id', authMiddleware, async (req: Request, res: Resp
     await pm2Command(`delete ${req.params.id}`);
     res.json({ message: `프로세스 ${req.params.id} 삭제 완료` });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -287,8 +329,7 @@ app.post('/api/pm2/save', authMiddleware, async (_req: Request, res: Response): 
     await pm2Command('save');
     res.json({ message: 'PM2 프로세스 목록 저장 완료' });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -308,8 +349,7 @@ app.post('/api/pm2/register', authMiddleware, async (req: Request, res: Response
     await pm2Command(cmd);
     res.json({ message: `프로세스 "${name}" 등록 완료` });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -318,8 +358,7 @@ app.get('/api/pm2/logs/:id', authMiddleware, async (req: Request, res: Response)
     const { stdout } = await execAsync(`pm2 logs ${req.params.id} --lines 100 --nostream --no-color 2>&1`);
     res.json({ logs: stdout });
   } catch (err: unknown) {
-    const error = err as Error;
-    res.json({ logs: error.message });
+    res.json({ logs: (err as Error).message });
   }
 });
 
