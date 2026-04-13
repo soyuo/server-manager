@@ -25,7 +25,6 @@ cd server-manager
 npm install
 npm run build
 ```
-- (please ignore expressWs type warning..)
 ### pm2 Setup
 ```bash
 npm i -g pm2
