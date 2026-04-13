@@ -14,6 +14,8 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 source ~/.bashrc
 nvm install --lts
 sudo setcap 'cap_net_bind_service=+ep' $(which node)
+sudo apt update
+sudo apt install -y build-essential
 ```
 ### Repository
 ```bash
@@ -35,4 +37,16 @@ sudo env PATH=... pm2 startup systemd -u root --hp /root
 ### check
 ```bash
 pm2 list
+```
+
+## Migration
+### 이전 적용자들을 위한 가이드
+- package.json 업데이트
+- server.ts, public/index.html 업데이트
+
+```bash
+sudo apt update
+sudo apt install -y build-essential
+npm install
+npm run build
 ```
